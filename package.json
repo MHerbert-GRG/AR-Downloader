@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "puppeteer": "^19.11.1",
+    "puppeteer-select": "^1.0.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.33.0"
+  },
+  "scripts": {}
+}
