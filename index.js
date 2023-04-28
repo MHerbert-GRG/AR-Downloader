@@ -84,6 +84,6 @@ await navigationPromise;
       });
     });
   }
-  
+    //await browser.close();
   
 })()
