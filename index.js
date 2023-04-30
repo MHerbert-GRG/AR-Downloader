@@ -80,18 +80,31 @@ const rl = readline.createInterface({
         await page.click('input[value="Agree and proceed"]');
         await navigationPromise;
         */
+
     await page.waitForSelector('input[name="pdfURL"]');
     const pdfLink = await page.$eval('input[name="pdfURL"]', el => el.value);
 
     console.log(pdfLink);
- 
     await navigationPromise;
+
     // Goes to Annual Report
     await page.goto(pdfLink);
-    await new Promise(resolve => setTimeout(resolve, 150000));
-    //await page.once('load', () => console.log('Page loaded!'));
-    await page.addStyleTag({ content: '.nav { display: none} .navbar { border: 0px} #print-button {display: none}' })
-    await page.pdf({ path: asxCode +"_" + year + "_" + 'AR.pdf', printBackground: true, format:'A4' });
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Downloads the Annual Report
+    const https = require('https'); // or 'https' for https:// URLs
+    const fs = require('fs');
+
+    const file = fs.createWriteStream(asxCode + " " + year + ".pdf");
+    const request = https.get(pdfLink, function (response) {
+        response.pipe(file);
+
+        // after download completed close filestream
+        file.on("finish", () => {
+            file.close();
+            console.log("Download Completed");
+        });
+    });
     
     await navigationPromise;
     await browser.close();
