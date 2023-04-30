@@ -1,5 +1,8 @@
 {
   "dependencies": {
+    "@pdftron/pdfnet-node": "^10.0.0",
+    "download.js": "^1.0.0",
+    "node-qpdf": "^1.0.3",
     "puppeteer": "^19.11.1",
     "puppeteer-select": "^1.0.3"
   },

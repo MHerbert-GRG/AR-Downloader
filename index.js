@@ -5,6 +5,10 @@
   - Author: MH
 */
 
+/**
+* @jest-environment jsdom
+*/
+
 const puppeteer = require('puppeteer');
 const readline = require('readline');
 const select = require ('puppeteer-select');
@@ -15,68 +19,85 @@ const rl = readline.createInterface({
   output: process.stdout
 });
 (async () => {
-  // Prompts user for ASX code & the year they wish to query 
-  const asxCode = await promptUser('Enter asx code: ');
-  const year = await promptUser('Enter the year: ');
 
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
+    // Prompts user for ASX code & the year they wish to query 
+    const asxCode = await promptUser('Enter asx code: ');
+    const year = await promptUser('Enter the year: ');
+   
+    const browser = await puppeteer.launch({ headless: false, args: ['--start-maximized'] });
+    const page = await browser.newPage();
 
-  // Opens browser (Chromium)
-  await page.setViewport({ width: 1280, height: 800 });
+    // Manually setting the timeout
+    await page.setDefaultNavigationTimeout(200000); 
 
-  // ASX historical announcements web form
-  await page.goto('https://www.asx.com.au/asx/v2/statistics/announcements.do');
-  // ASX historical announcements website
-  //await page.goto('https://www2.asx.com.au/markets/trade-our-cash-market/historical-announcements');
+    // Opens browser (Chromium)
+     await page.setViewport({ width: 0, height: 0 });
 
-  // Reset for page navigation (USED FOR .click())
-  const navigationPromise = page.waitForNavigation()
+    // ASX historical announcements web form
+    await page.goto('https://www.asx.com.au/asx/v2/statistics/announcements.do');
+    // ASX historical announcements website
+    //await page.goto('https://www2.asx.com.au/markets/trade-our-cash-market/historical-announcements');
 
-  /*
-  // Selecting Accept cookies
-  await page.waitForSelector('button[id="onetrust-accept-btn-handler"]');
-  await page.click('button[id="onetrust-accept-btn-handler"]');
-  */
+    // Reset for page navigation (USED FOR .click())
+    const navigationPromise = page.waitForNavigation();
 
- // Selecting the company, inputs data into the form
- await page.type('#issuerCode', asxCode);
- await page.click('#timeframeType2');
- await page.select('#year',year);
- await page.click('.actionbutton');
- await navigationPromise;
+    /*
+    // Selecting Accept cookies
+    await page.waitForSelector('button[id="onetrust-accept-btn-handler"]');
+    await page.click('button[id="onetrust-accept-btn-handler"]');
+    */
 
- // Finds where the AR is and highlights the match
- const found = await page.evaluate(() => window.find("Annual Report"));
- await navigationPromise;
+    // Selecting the company, inputs data into the form
+    await page.type('#issuerCode', asxCode);
+    await page.click('#timeframeType2');
+    await page.select('#year',year);
+    await page.click('.actionbutton');
+    await navigationPromise;
 
- // Clicks link, AR
- const element = await select(page).getElement('a:contains(Annual Report)');
- await element.click();
- await navigationPromise;
+    // Finds where the AR is and highlights the match
+    const found = await page.evaluate(() => window.find("Annual Report"));
+    await navigationPromise;
 
- //const agree = await select(page).getElement('a:contains(Agree and)');
+    // Clicks link, AR
+    const element = await select(page).getElement('a:contains(Annual Report)');
 
-/*
-const pageList = await browser.pages();    
-await console.log("NUMBER TABS:", pageList.length);
-await console.log("NUMBER TABS:", pageList[2]._target._targetInfo.url);
-await navigationPromise;
-page2 = await browser.newPage()
-            
-const redirectedUrlforService =   pageList[2]._target._targetInfo.url;
-await page2.goto(redirectedUrlforService)
-await page2.bringToFront(); 
+    // setuping up puppeteer with the consent tab that opens after clicking on the link
+    const newPagePromise = new Promise(x => browser.once('targetcreated', target => x(target.page())));
+        await element.click();
+        const newPage = await newPagePromise;
+        await navigationPromise;
+        const url = await newPage.evaluate(() => document.location.href);
+        //console.log(url);
 
-const agree = await select(page).getElement('a:contains(Agree and)');
-//await agree.click();
+    // Changes focus to consent form
+    await page.goto(url);
+   
 
-await navigationPromise;
-*/
+        // Clicks agree and procced (WARNING:bug -> doesn't actually go to file, but returns to home page')
+        /*
+        await navigationPromise;
+        await page.waitForSelector('input[value="Agree and proceed"]');
+        await page.click('input[value="Agree and proceed"]');
+        await navigationPromise;
+        */
+    await page.waitForSelector('input[name="pdfURL"]');
+    const pdfLink = await page.$eval('input[name="pdfURL"]', el => el.value);
 
-  //await browser.close();
+    console.log(pdfLink);
+ 
+    await navigationPromise;
+    // Goes to Annual Report
+    await page.goto(pdfLink);
+    await new Promise(resolve => setTimeout(resolve, 150000));
+    //await page.once('load', () => console.log('Page loaded!'));
+    await page.addStyleTag({ content: '.nav { display: none} .navbar { border: 0px} #print-button {display: none}' })
+    await page.pdf({ path: asxCode +"_" + year + "_" + 'AR.pdf', printBackground: true, format:'A4' });
+    
+    await navigationPromise;
+    await browser.close();
+   
+  
 
-  // Browser 
   function promptUser(question) {
     return new Promise((resolve) => {
       rl.question(question, (answer) => {
@@ -84,6 +105,6 @@ await navigationPromise;
       });
     });
   }
-    //await browser.close();
+    
   
 })()
