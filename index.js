@@ -81,22 +81,21 @@ const rl = readline.createInterface({
         await navigationPromise;
         */
 
-    await page.waitForSelector('input[name="pdfURL"]');
-    const pdfLink = await page.$eval('input[name="pdfURL"]', el => el.value);
+    //await page.waitForSelector('input[name="pdfURL"]');
+    //const pdfLink = await page.$eval('input[name="pdfURL"]', el => el.value);
 
-    console.log(pdfLink);
+    //console.log(pdfLink);
     await navigationPromise;
-
-    // Goes to Annual Report
-    await page.goto(pdfLink);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    //await page.goto(pdfLink);
+    await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Downloads the Annual Report
     const https = require('https'); // or 'https' for https:// URLs
     const fs = require('fs');
 
-    const file = fs.createWriteStream(asxCode + " " + year + ".pdf");
-    const request = https.get(pdfLink, function (response) {
+    const file = fs.createWriteStream("file.pdf");
+    const request = https.get(url, function (response) {
         response.pipe(file);
 
         // after download completed close filestream
